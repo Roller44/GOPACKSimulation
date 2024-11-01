@@ -70,7 +70,7 @@ function accuracies = ACKDetectionWiFi(settings)
         end
     end
 
-    function [decodedMsg, decodedORS] = ACKDecoding(samples, lenType)
+    function [decodedMsg, decodedORS] = ACKDecoding(samples, lenType, numORS)
         % Decode ACK signals based on the quadrants of their ORSs
 
         sampInterval = 0.05; % us
@@ -100,12 +100,12 @@ function accuracies = ACKDetectionWiFi(settings)
                         quandrants(msg_ith, sam_ith-1) = 3;
                     end
                 end
-                decodedMsg(msg_ith, 1) = mode(quandrants(msg_ith, :));
+                % decodedMsg(msg_ith, 1) = mode(quandrants(msg_ith, :));
             end
             % A wave lasting for 4us can be sampled 4us/(5*0.05us) = 16 times
             quandrants = quandrants(:, 1:1:(end-15));
             quandrants = reshape(quandrants, numMsg, [], size(quandrants, 2)/numORS);
-            quandrants = mode(quandrants, 3);
+            
         else
             for msg_ith = 1: 1: numMsg
                 for sam_ith = 2: 2: sampleSize
@@ -128,9 +128,9 @@ function accuracies = ACKDetectionWiFi(settings)
             for ORSith = 1:1:numORS
                 quandrants(:, :, 17:end) = [];
             end
-            quandrants = mode(quandrants, 3);
         end
-        decodedORS = quandrants;
+        decodedORS = mode(quandrants, 3);
+        decodedMsg = decodedORS(decodedORS, 2);
     end
 
 %% Starts here:
@@ -152,7 +152,7 @@ samples = Sampling(rxWaveform, offset);
 powerValues = energyDetection(samples);
 phaseShiftValues = phaseShiftCal(samples, lenType);
 numDetectedORS = ORSDection(phaseShiftValues, ORSPhaseThreshold, ORSNumThreshold, numORS);
-[decodedMsg, decodedORS] = ACKDecoding(samples, lenType);
+[decodedMsg, decodedORS] = ACKDecoding(samples, lenType, numORS);
 
 %% Evaluation of ACK arrival detection
 busyIndices = find(powerValues(:, 1) > powerThreshold)';

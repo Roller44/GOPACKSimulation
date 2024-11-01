@@ -5,12 +5,23 @@ global signalPower_dBm;
 signalPower_dBm = 10;
 
 %% parameter
-maxTimes = 100; % 2000;
+maxTimes = 2000;
 offsetSim = -50: 10: 50; % [-50, -45, -35, -25, -15, -5, 5, 15, 25, 35, 45, 50]; % us
 offsetAna = -50: 1: 50; % us
 % offsetAna = offsetSim;
-% numORS = 15;
-numORS = 3;
+
+settingsSim.ACKThreshold = 8;
+settingsSim.ORSPhaseThreshold = 1;
+settingsSim.ORSNumThreshold = 1;
+settingsSim.powerThreshold = 0.013;
+settingsSim.offset.isRandom = 0;
+settingsSim.offset.offsetValue = 20;
+settingsSim.offset.max = 50;
+settingsSim.offset.min = -50;
+settingsSim.numORS = 15;
+settingsSim.RXType = 'BLE';
+% settingsSim.numORS = 3;
+% settingsSim.RXType = 'WiFi';
 
 % Frame duration
 PreambleDur = 128;
@@ -23,23 +34,12 @@ PayloadDur = 16*numSym;
 SIFSDur = 12*16; % The length of a SIFS is equal to that of 16 symbols.
 packetDur = HeaderDur + PayloadDur;
 ORSDur = 1;
-ACKDur_ShortSignal = (numORS+1) .* ORSDur;
-ACKDur_LongSignal = 2.*numORS.*ORSDur;
+ACKDur_ShortSignal = (settingsSim.numORS + 1) .* ORSDur;
+ACKDur_LongSignal = 2 .* settingsSim.numORS .* ORSDur;
 ProbPktSucc = 0.8;
 
-settingsSim.ACKThreshold = 8;
-settingsSim.ORSPhaseThreshold = 1;
-settingsSim.ORSNumThreshold = 1;
-settingsSim.powerThreshold = 0.013;
-settingsSim.offset.isRandom = 0;
-settingsSim.offset.offsetValue = 20;
-settingsSim.offset.max = 50;
-settingsSim.offset.min = -50;
-settingsSim.numORS = numORS;
-settingsSim.RXType = 'WiFi';
-
 %% Simulation and model for metrics versus sampling offset
-SNRStepSim = 0: -1: -1; % Debugging.
+SNRStepSim = 5: -1: -5; % Debugging.
 dispSNRStep = SNRStepSim;
 
 busyDetectAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
@@ -321,7 +321,7 @@ for ith = 1: 5: length(dispSNRStep)
     jth = jth + 1;
 end
 hold off;
-axis([min(offsetSim), max(offsetSim), 0.45, 1]);
+% axis([min(offsetSim), max(offsetSim), 0.45, 1]);
 xlabel('Sampling offset $$\Delta t$$ ($$\mu s$$)', 'Interpreter', 'latex');
 ylabel({'Successful probability $$P_{C3}(\Delta t)$$ of'; 'detecting ACK type'}, 'Interpreter','Latex')
 % legend([p1, p2, p3, p4], 'Short ACK (sim)', 'Short ACK (ana)', 'Long ACK (sim)', 'Long ACK (ana)', 'location', 'best', 'Interpreter','Latex');
