@@ -38,13 +38,9 @@ ORSNumThreshold = settings.ORSNumThreshold;
         % This function calculate the probability of a sample falls into
         % each quandrant.
         txWaveform = PHYOQPSK_ACKfeedback(message, numORS, lenType, RXType);
-        % Scale signal.
-        % dBm = dBW + 30
-        initPwd = txWaveform * txWaveform' / length(txWaveform);
-        scaleCoeff = sqrt(db2pow(signalPower_dBm - 30) ./ initPwd);
-        txWaveform = txWaveform .* scaleCoeff;
-        
-        noisePower_mW = (db2pow(signalPower_dBm - SNR_dB)) ./ 1 ./ 1000;
+        % Scale noise.
+        % dBm = dBW + 30        
+        noisePower_mW = (db2pow(signalPower_dBm - SNR_dB)) ./ 2 ./ 1000;
 
         [~, offsetSize] = size(offsetValue);
 
@@ -90,9 +86,9 @@ else
     numCorrSamp = 4; 
 end
 % poissonBinomialPMF includes case where none of sample is correct.
-% probTmp = poissonBinomialPMF(probTmp);
-% results.corrORSDecodeProb = sum(probTmp(1, numCorrSamp+1:1:end), 2); 
-results.corrORSDecodeProb = poissonBinomialAtLeastM_fast(probTmp, numCorrSamp);
+probTmp = poissonBinomialPMF(probTmp);
+results.corrORSDecodeProb = sum(probTmp(1, numCorrSamp+1:1:end), 2); 
+% results.corrORSDecodeProb = poissonBinomialAtLeastM_fast(probTmp, numCorrSamp);
 results.corrACKDecodeProb = binocdf(round(numORS/2)-1, numORS, results.corrORSDecodeProb, 'upper');
 
 % numACKCorrectCases = size(ACKCorrectCases, 1);

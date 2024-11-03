@@ -5,9 +5,9 @@ function txWaveformNoisy = AddNoise(SNR, txWaveform)
 
     [numSym, signalLength] = size(txWaveform);
 
-    % Scale signal.
-    scaleCoeff = sqrt(db2pow(signalPower_dBm - 30) ./ 1);
-    txWaveform = txWaveform .* scaleCoeff;
+%     % Scale signal.
+%     scaleCoeff = sqrt(db2pow(signalPower_dBm - 30) ./ 1);
+%     txWaveform = txWaveform .* scaleCoeff;
 
     % Add noise.
     % SNR = signalPower_dBm - noisePower_dBm

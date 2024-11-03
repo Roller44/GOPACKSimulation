@@ -60,8 +60,8 @@ busyProb = 1;
         txWaveform = PHYOQPSK_ACKfeedback(message, numORS, lenType, RXType);
         % Scale signal.
         % dBm = dBW + 30
-        scaleCoeff = sqrt(db2pow(signalPower_dBm - 30) ./ 1);
-        txWaveform = txWaveform .* scaleCoeff;
+%         scaleCoeff = sqrt(db2pow(signalPower_dBm - 30) ./ 1);
+%         txWaveform = txWaveform .* scaleCoeff;
 
         samples = Sampling(txWaveform, offset, RXType);
 
