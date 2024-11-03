@@ -13,7 +13,7 @@ function txWaveform = PHYOQPSK_ACKfeedback(messages, numORS, lenType, RXType)
             numOddChips = numORS + 2;
             numEvenChips = numORS + 1;
         else
-            numOddChips = (numORS + 1) .* alpha + 1;
+            numOddChips = (numORS + 1) .* alpha;
             numEvenChips = (numORS + 1) .* alpha;
         end
     else
@@ -21,7 +21,7 @@ function txWaveform = PHYOQPSK_ACKfeedback(messages, numORS, lenType, RXType)
             numOddChips = 2 .* numORS + 1;
             numEvenChips = 2 .* numORS;
         else
-            numOddChips = 2 .* numORS .* alpha + 1;
+            numOddChips = 2 .* numORS .* alpha;
             numEvenChips = 2 .* numORS .* alpha;
         end
     end
@@ -46,7 +46,11 @@ function txWaveform = PHYOQPSK_ACKfeedback(messages, numORS, lenType, RXType)
     end
     
     pulse = sin(0:pi/OSR:(OSR-1)*pi/OSR); % Half-period sine wave
-    signalLen = OSR + OSR .* numOddChips + OSR;
+    if isequal(RXType, 'BLE')
+        signalLen = OSR + OSR .* numOddChips + OSR;
+    else
+        signalLen = OSR + OSR .* numOddChips + OSR/2 + OSR;
+    end
     txWaveform = zeros(numMsg, signalLen);
     for ith = 1: 1: numMsg
     
@@ -54,7 +58,12 @@ function txWaveform = PHYOQPSK_ACKfeedback(messages, numORS, lenType, RXType)
         filteredImag = pulse' * evenChips(ith, :);    % each column is now a filtered pulse
     
         re = filteredReal(:);
-        im = [zeros(round(OSR/2), 1);  filteredImag(:); zeros(round(OSR/2), 1)];
+        if isequal(RXType, 'BLE')
+            im = [zeros(round(OSR/2), 1);  filteredImag(:); zeros(round(OSR/2), 1)];
+        else
+            re = [filteredReal(:); zeros(round(OSR/2), 1)];
+            im = [zeros(round(OSR/2), 1);  filteredImag(:)];
+        end
         waveform = complex(re, im);
         % Scale signal.
         % dBm = dBW + 30 
