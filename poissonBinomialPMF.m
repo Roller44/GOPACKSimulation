@@ -19,7 +19,7 @@ function [pmf] = poissonBinomialPMF(probabilities)
         
         % Calculate probability for each combination
         probSum = 0;
-        for ith = 1:size(combinations, 1)
+        parfor ith = 1:size(combinations, 1)
             subset = combinations(ith, :);
             
             % Initialize probability for this combination
