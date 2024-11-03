@@ -1,27 +1,5 @@
 function accuracies = ACKDetectionWiFi(settings)
 
-    function samples = Sampling(rxWaveform, offset)
-        sampInterval = 0.05; % us
-        OSR = 100; % = 1us
-        beta = 5; % Down-sampling factor
-        % Sampling with offset
-        sampInterval = OSR * sampInterval * beta;
-        [numMsg, signalLen] = size(rxWaveform);
-        sampStart = OSR * 1.5 + 1;
-        sampEnd = signalLen - OSR * 1.5;
-        sampleSize = length(sampStart:sampInterval:sampEnd);
-        if offset.isRandom == 1
-            offsetValue = randi([offset.min, offset.max], numMsg, 1);
-        else
-            offsetValue = offset.offsetValue .* ones(numMsg, 1);
-        end
-
-        samples = zeros(numMsg, sampleSize);
-        for ith = 1: 1: numMsg
-            samples(ith, :) = rxWaveform(ith, (sampStart+offsetValue(ith, 1)): sampInterval :(sampEnd+offsetValue(ith, 1)));
-        end
-    end
-
     function powerValues = energyDetection(samples)
         % Calcualte signal power
         energyValues = abs(samples.^2);
@@ -70,7 +48,7 @@ function accuracies = ACKDetectionWiFi(settings)
         end
     end
 
-    function [decodedMsg, decodedORS] = ACKDecoding(samples, lenType, numORS)
+    function [decodedMsg, decodedORS, quandrants] = ACKDecoding(samples, lenType, numORS)
         % Decode ACK signals based on the quadrants of their ORSs
 
         sampInterval = 0.05; % us
@@ -130,7 +108,7 @@ function accuracies = ACKDetectionWiFi(settings)
             end
         end
         decodedORS = mode(quandrants, 3);
-        decodedMsg = decodedORS(decodedORS, 2);
+        decodedMsg = mode(decodedORS, 2);
     end
 
 %% Starts here:
@@ -148,11 +126,11 @@ numORS = settings.numORS;
 lenType = settings.ACKSignalLenType;
 
 %% Simulation part
-samples = Sampling(rxWaveform, offset);
+samples = Sampling(rxWaveform, offset, 'WiFi');
 powerValues = energyDetection(samples);
 phaseShiftValues = phaseShiftCal(samples, lenType);
 numDetectedORS = ORSDection(phaseShiftValues, ORSPhaseThreshold, ORSNumThreshold, numORS);
-[decodedMsg, decodedORS] = ACKDecoding(samples, lenType, numORS);
+[decodedMsg, decodedORS, quandrants] = ACKDecoding(samples, lenType, numORS);
 
 %% Evaluation of ACK arrival detection
 busyIndices = find(powerValues(:, 1) > powerThreshold)';
@@ -205,11 +183,9 @@ end
 
 numCorrectACKMsg = size(find(decodedMsg(isACKIndices, :) == trueMsg(isACKIndices, :)), 1);
 
-numQua = zeros(1, 4);
-for jth = 1: 1: 4
-    numQua(1, jth) = size(find(decodedORS==jth), 1);
-end
-accuracies.freqQua = numQua ./ (numACKMsg .* numORS);
+trueQua = repmat(trueORS, 1, 1, 16);
+numCorrQua = size(find(quandrants(:, :, 10) == trueQua(:, :, 10)), 1);
+accuracies.accurQua = numCorrQua ./ (numACKMsg .* numORS);
 
 if numACKMsg > 0
     accuracies.accurDecodedACK = numCorrectACKMsg / numACKMsg;

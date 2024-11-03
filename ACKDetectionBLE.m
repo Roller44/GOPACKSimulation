@@ -1,22 +1,5 @@
 function accuracies = ACKDetectionBLE(settings)
 
-    function samples = Sampling(rxWaveform, offset)
-        % Sampling with offset
-        sampInterval = 100;
-        [numMsg, signalLen] = size(rxWaveform);
-        sampleSize = length((2*sampInterval+1): sampInterval :(signalLen-sampInterval));
-        if offset.isRandom == 1
-            offset = randi([offset.min, offset.max], numMsg, 1);
-        else
-            offset = offset.offsetValue .* ones(numMsg, 1);
-        end
-
-        samples = zeros(numMsg, sampleSize);
-        for ith = 1: 1: numMsg
-            samples(ith, :) = rxWaveform(ith, (2*sampInterval+1+offset(ith, 1)): sampInterval :(signalLen-sampInterval+offset(ith, 1)));
-        end
-    end
-
     function powerValues = energyDetection(samples)
         % Calcualte signal power
         energyValues = abs(samples.^2);
@@ -102,6 +85,7 @@ function accuracies = ACKDetectionBLE(settings)
             end
         end
         decodedORS = quandrants;
+        decodedMsg = mode(quandrants, 2);
     end
 
 %% Starts here:
@@ -118,7 +102,7 @@ offset = settings.offset;
 numORS = settings.numORS;
 lenType = settings.ACKSignalLenType;
 
-samples = Sampling(rxWaveform, offset);
+samples = Sampling(rxWaveform, offset, 'BLE');
 powerValues = energyDetection(samples);
 phaseShiftValues = phaseShiftCal(samples, lenType);
 numDetectedORS = ORSDection(phaseShiftValues, ORSPhaseThreshold);
@@ -179,7 +163,7 @@ numQua = zeros(1, 4);
 for jth = 1: 1: 4
     numQua(1, jth) = size(find(decodedORS==jth), 1);
 end
-accuracies.freqQua = numQua ./ (numACKMsg .* numORS);
+accuracies.accurQua = numQua ./ (numACKMsg .* numORS);
 
 if numACKMsg > 0
     accuracies.accurDecodedACK = numCorrectACKMsg / numACKMsg;

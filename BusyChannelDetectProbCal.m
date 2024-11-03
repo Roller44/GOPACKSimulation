@@ -11,45 +11,6 @@ RXType = settings.RXType;
 % busyProb = settings.busyProb;
 busyProb = 1;
 
-    function samples = Sampling(rxWaveform, offset, RXType)
-        % Sampling with offset
-        if isequal(RXType, 'BLE')
-            sampInterval = 100;
-            [numMsg, signalLen] = size(rxWaveform);
-            sampleSize = length((2*sampInterval+1): sampInterval :(signalLen-sampInterval));
-            if offset.isRandom == 1
-                offset = randi([-35,35], 1, 1) .* ones(numMsg, 1);
-            else
-                offset = offset.offsetValue .* ones(numMsg, 1);
-            end
-    
-            samples = zeros(numMsg, sampleSize);
-            for ith = 1: 1: numMsg
-                samples(ith, :) = rxWaveform(ith, (2*sampInterval+1+offset(ith, 1)): sampInterval :(signalLen-sampInterval+offset(ith, 1)));
-            end
-        else
-            sampInterval = 0.05; % us
-            OSR = 100; % = 1us
-            beta = 5; % Down-sampling factor
-            % Sampling with offset
-            sampInterval = OSR * sampInterval * beta;
-            [numMsg, signalLen] = size(rxWaveform);
-            sampStart = OSR * 1.5 + 1;
-            sampEnd = signalLen - OSR * 1.5;
-            sampleSize = length(sampStart:sampInterval:sampEnd);
-            if offset.isRandom == 1
-                offset = randi([offset.min, offset.max], numMsg, 1);
-            else
-                offset = offset.offsetValue .* ones(numMsg, 1);
-            end
-    
-            samples = zeros(numMsg, sampleSize);
-            for ith = 1: 1: numMsg
-                samples(ith, :) = rxWaveform(ith, (sampStart+offset(ith, 1)): sampInterval :(sampEnd+offset(ith, 1)));
-            end
-        end
-    end
-
     function noisePower = noisePowerCalculation(SNR)
         % SNR = signalPower_dBm - noisePower_dBm;
         noisePower = (db2pow(signalPower_dBm - SNR)) ./ 2 ./ 1000;

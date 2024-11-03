@@ -11,40 +11,10 @@ function results = ACKDetectProbCal(settings)
     RXType = settings.RXType;
     
     
-        function samples = Sampling(rxWaveform, offset, RXType)
-            % Sampling with offset
-            if isequal(RXType, 'BLE')
-                sampInterval = 100;
-                [numMsg, signalLen] = size(rxWaveform);
-                sampleSize = length((2*sampInterval+1): sampInterval :(signalLen-sampInterval));
-                samples = zeros(numMsg, sampleSize);
-                for ith = 1: 1: numMsg
-                    samples(ith, :) = rxWaveform(ith, (2*sampInterval+1+offset(ith, 1)): sampInterval :(signalLen-sampInterval+offset(ith, 1)));
-                end
-            else
-                sampInterval = 0.05; % us
-                OSR = 100; % = 1us
-                beta = 5; % Down-sampling factor
-                sampInterval = OSR * sampInterval * beta;
-                [numMsg, signalLen] = size(rxWaveform);
-                sampStart = OSR * 1.5 + 1;
-                sampEnd = signalLen - OSR * 1.5;
-                sampleSize = length(sampStart:sampInterval:sampEnd);
-                samples = zeros(numMsg, sampleSize);
-                for ith = 1: 1: numMsg
-                    samples(ith, :) = rxWaveform(ith, (sampStart+offset(ith, 1)): sampInterval :(sampEnd+offset(ith, 1)));
-                end
-            end
-        end
-    
     noisePower_mW = (db2pow(signalPower_dBm - SNR_dB)) ./ 2 ./ 1000;
     message = 1;
     txWaveform = PHYOQPSK_ACKfeedback(message, numORS, lenType, RXType);
-    % Scale signal.
-    % dBm = dBW + 30
-%     scaleCoeff = sqrt(db2pow(signalPower_dBm - 30) ./ 1);
-%     txWaveform = txWaveform .* scaleCoeff;
-    samples = Sampling(txWaveform, offset.offsetValue, RXType);
+    samples = Sampling(txWaveform, offset, RXType);
     
     if isequal(lenType, 'short')
         power = samples * samples' ./ (numORS+1);
