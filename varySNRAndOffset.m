@@ -47,6 +47,7 @@ busyDetectAccurMiss_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
 busyDetectAccurFalseAlarm_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
 ORSDetectAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
 ACKSignalDetectAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
+ORSDecodeAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
 ACKDecodeAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
 
 busyDetectAccur_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
@@ -54,6 +55,7 @@ busyDetectAccurMiss_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
 busyDetectAccurFalseAlarm_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
 ORSDetectAccur_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
 ACKSignalDetectAccur_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
+ORSDecodeAccur_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
 ACKDecodeAccur_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
 
 busyProb = 1;
@@ -85,6 +87,7 @@ for ith = 1: 1: length(SNRStepSim)
         busyDetectAccurFalseAlarm_ShortSignal(ith, jth) = accuracies.falseAlarmDetectedBusy;
         ORSDetectAccur_ShortSignal(ith, jth) = accuracies.accurDetectedORS;
         ACKSignalDetectAccur_ShortSignal(ith, jth) = accuracies.accurDetectedACK;
+        ORSDecodeAccur_ShortSignal(ith, jth) = accuracies.accurDecodedORS;
         ACKDecodeAccur_ShortSignal(ith, jth) = accuracies.accurDecodedACK;
 
         settingsSim.ACKSignalLenType = 'long';
@@ -100,6 +103,7 @@ for ith = 1: 1: length(SNRStepSim)
         busyDetectAccurFalseAlarm_LongSignal(ith, jth) = accuracies.falseAlarmDetectedBusy;
         ORSDetectAccur_LongSignal(ith, jth) = accuracies.accurDetectedORS;
         ACKSignalDetectAccur_LongSignal(ith, jth) = accuracies.accurDetectedACK;
+        ORSDecodeAccur_LongSignal(ith, jth) = accuracies.accurDecodedORS;
         ACKDecodeAccur_LongSignal(ith, jth) = accuracies.accurDecodedACK;
     end
 end
@@ -128,6 +132,7 @@ busyDetectMissProb_ShortSignal = zeros(length(SNRStepAna), length(offsetAna));
 busyDetectFalseAlarmProb_ShortSignal = zeros(length(SNRStepAna), length(offsetAna));
 ORSDetectProb_ShortSignal = zeros(length(SNRStepAna), length(offsetAna));
 ACKSignalDetectProb_ShortSignal = zeros(length(SNRStepAna), length(offsetAna));
+ORSDecodeProb_ShortSignal = zeros(length(SNRStepAna), length(offsetAna));
 ACKDecodeProb_ShortSignal = zeros(length(SNRStepAna), length(offsetAna));
 
 busyDetectProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
@@ -135,6 +140,7 @@ busyDetectMissProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
 busyDetectFalseAlarmProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
 ORSDetectProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
 ACKSignalDetectProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
+ORSDecodeProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
 ACKDecodeProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
 
 for ith = 1: 1: length(SNRStepAna)
@@ -155,6 +161,7 @@ for ith = 1: 1: length(SNRStepAna)
         ORSDetectProb_ShortSignal(ith, jth) = results.succORSProb;
         ACKSignalDetectProb_ShortSignal(ith, jth) = results.succACKProb;
         results = DecodeProbCal(settingsAna);
+        ORSDecodeProb_ShortSignal(ith, jth) = results.corrORSDecodeProb;
         ACKDecodeProb_ShortSignal(ith, jth) = results.corrACKDecodeProb;
 
         settingsAna.ACKSignalLenType = 'long';
@@ -166,6 +173,7 @@ for ith = 1: 1: length(SNRStepAna)
         ORSDetectProb_LongSignal(ith, jth) = results.succORSProb;
         ACKSignalDetectProb_LongSignal(ith, jth) = results.succACKProb;
         results = DecodeProbCal(settingsAna);
+        ORSDecodeProb_LongSignal(ith, jth) = results.corrORSDecodeProb;
         ACKDecodeProb_LongSignal(ith, jth) = results.corrACKDecodeProb;
     end
 end
@@ -275,30 +283,57 @@ ylabel({'Successful probability $$P_{C2}(\Delta t)$$'; 'of detecting an ACK sign
 legend([p1, p2, p3, p4], 'Short ACK', 'Short ACK *', 'Long ACK', 'Long ACK *', 'location', 'best', 'Interpreter','Latex');
 
 % % Plot successful ORS detection probability versus offset
-% figure;
-% jth = 1;
-% for ith = 1: 1: length(dispSNRStep)
-%     p1 = plot(offsetSim, ORSDetectAccur_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
-%         'Marker', markerSpace(1, 1), 'LineStyle', 'none');
-%     hold on;
-%     p2 = plot(offsetAna, ORSDetectProb_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
-%         'Marker', 'none', 'LineStyle', lineSpace(1, 1));
-%     hold on;
-% 
-%     p3 = plot(offsetSim, ORSDetectAccur_LongSignal(ith, :), 'Color', colorSpace(1, 2),...
-%         'Marker', markerSpace(1, 2), 'LineStyle', 'none');
-%     hold on;
-%     p4 = plot(offsetAna, ORSDetectProb_LongSignal(ith, :), 'Color', colorSpace(1, 2),...
-%         'Marker', 'none', 'LineStyle', lineSpace(1, 2));
-%     hold on;
-% 
-%     jth = jth + 1;
-% end
-% hold off;
-% axis([min(offsetSim), max(offsetSim), 0, 1]);
-% xlabel('Sampling offset $$\Delta t$$ ($$\mu s$$)', 'Interpreter', 'latex');
-% ylabel('Successful probability $$P_{o}^{s}(\Delta t)$$ of ORS detection', 'Interpreter','Latex')
+figure;
+jth = 1;
+for ith = 1: 1: length(dispSNRStep)
+    p1 = plot(offsetSim, ORSDetectAccur_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
+        'Marker', markerSpace(1, 1), 'LineStyle', 'none');
+    hold on;
+    p2 = plot(offsetAna, ORSDetectProb_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
+        'Marker', 'none', 'LineStyle', lineSpace(1, 1));
+    hold on;
+
+    p3 = plot(offsetSim, ORSDetectAccur_LongSignal(ith, :), 'Color', colorSpace(1, 2),...
+        'Marker', markerSpace(1, 2), 'LineStyle', 'none');
+    hold on;
+    p4 = plot(offsetAna, ORSDetectProb_LongSignal(ith, :), 'Color', colorSpace(1, 2),...
+        'Marker', 'none', 'LineStyle', lineSpace(1, 2));
+    hold on;
+
+    jth = jth + 1;
+end
+hold off;
+axis([min(offsetSim), max(offsetSim), 0, 1]);
+xlabel('Sampling offset $$\Delta t$$ ($$\mu s$$)', 'Interpreter', 'latex');
+ylabel('Successful probability $$P_{o}^{s}(\Delta t)$$ of ORS detection', 'Interpreter','Latex')
+legend([p1, p2, p3, p4], 'Short ACK (sim)', 'Short ACK (ana)', 'Long ACK (sim)', 'Long ACK (ana)', 'location', 'best', 'Interpreter','Latex');
+
+% Plot correct ORS decoding probability versus sampling offset
+figure;
+jth = 1;
+for ith = 1: 5: length(dispSNRStep)
+    p1 = plot(offsetSim, ORSDecodeAccur_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
+        'Marker', markerSpace(1, 1), 'LineStyle', 'none');
+    hold on;
+    p2 = plot(offsetAna, ORSDecodeProb_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
+        'Marker', 'none', 'LineStyle', lineSpace(1, 1));
+    hold on;
+
+    p3 = plot(offsetSim, ORSDecodeAccur_LongSignal(ith, :), 'Color', colorSpace(1, 2),...
+        'Marker', markerSpace(1, 2), 'LineStyle', 'none');
+    hold on;
+    p4 = plot(offsetAna, ORSDecodeProb_LongSignal(ith, :), 'Color', colorSpace(1, 2),...
+        'Marker', 'none', 'LineStyle', lineSpace(1, 2));
+    hold on;
+
+    jth = jth + 1;
+end
+hold off;
+% axis([min(offsetSim), max(offsetSim), 0.45, 1]);
+xlabel('Sampling offset $$\Delta t$$ ($$\mu s$$)', 'Interpreter', 'latex');
+ylabel({'Successful probability of'; 'detecting ORS type'}, 'Interpreter','Latex')
 % legend([p1, p2, p3, p4], 'Short ACK (sim)', 'Short ACK (ana)', 'Long ACK (sim)', 'Long ACK (ana)', 'location', 'best', 'Interpreter','Latex');
+legend([p1, p2, p3, p4], 'Short ACK', 'Short ACK *', 'Long ACK', 'Long ACK *', 'location', 'best', 'Interpreter','Latex');
 
 % Plot correct ACK decoding probability versus sampling offset
 figure;
