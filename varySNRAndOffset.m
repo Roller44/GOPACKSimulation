@@ -7,7 +7,7 @@ signalPower_dBm = 10;
 %% parameter
 maxTimes = 2000;
 offsetSim = -50: 10: 50; % [-50, -45, -35, -25, -15, -5, 5, 15, 25, 35, 45, 50]; % us
-offsetAna = -50: 1: 50; % us
+offsetAna = -50: 10: 50; % us
 % offsetAna = offsetSim;
 
 settingsSim.ACKThreshold = 8;
@@ -18,10 +18,10 @@ settingsSim.offset.isRandom = 0;
 settingsSim.offset.offsetValue = 20;
 settingsSim.offset.max = 50;
 settingsSim.offset.min = -50;
-settingsSim.numORS = 15;
-settingsSim.RXType = 'BLE';
-% settingsSim.numORS = 3;
-% settingsSim.RXType = 'WiFi';
+% settingsSim.numORS = 15;
+% settingsSim.RXType = 'BLE';
+settingsSim.numORS = 3;
+settingsSim.RXType = 'WiFi';
 
 % Frame duration
 PreambleDur = 128;
@@ -39,7 +39,7 @@ ACKDur_LongSignal = 2 .* settingsSim.numORS .* ORSDur;
 ProbPktSucc = 0.8;
 
 %% Simulation and model for metrics versus sampling offset
-SNRStepSim = 5: -1: -5; % Debugging.
+SNRStepSim = -5: -5: -10; % Debugging.
 dispSNRStep = SNRStepSim;
 
 busyDetectAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
@@ -49,6 +49,7 @@ ORSDetectAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
 ACKSignalDetectAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
 ORSDecodeAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
 ACKDecodeAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
+QuaDecodeAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
 
 busyDetectAccur_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
 busyDetectAccurMiss_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
@@ -57,6 +58,7 @@ ORSDetectAccur_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
 ACKSignalDetectAccur_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
 ORSDecodeAccur_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
 ACKDecodeAccur_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
+QuaDecodeAccur_LongSignal = zeros(length(SNRStepSim), length(offsetSim));
 
 busyProb = 1;
 notACKProb = 0;
@@ -64,8 +66,7 @@ for ith = 1: 1: length(SNRStepSim)
     SNR = SNRStepSim(1, ith);
     disp(['Runing simulation for SNR = ',num2str(SNR),'dB.']);
     for jth = 1: 1: length(offsetSim)
-        settingsSim.offset.isRandom = 0;
-        settingsSim.offset.offsetValue = offsetSim(1, jth);
+        settingsSim.offset = offsetSim(1, jth);
         disp(['---Runing simulation for offset = ', num2str(offsetSim(1, jth)/100),'us.']);
         messages = randi([1, 4], maxTimes, 1);
         settingsSim.messages = messages;
@@ -89,6 +90,7 @@ for ith = 1: 1: length(SNRStepSim)
         ACKSignalDetectAccur_ShortSignal(ith, jth) = accuracies.accurDetectedACK;
         ORSDecodeAccur_ShortSignal(ith, jth) = accuracies.accurDecodedORS;
         ACKDecodeAccur_ShortSignal(ith, jth) = accuracies.accurDecodedACK;
+        QuaDecodeAccur_ShortSignal(ith, jth) = accuracies.accurQua;
 
         settingsSim.ACKSignalLenType = 'long';
         txWaveform = PHYOQPSK_ACKfeedback(settingsSim.messages, settingsSim.numORS, settingsSim.ACKSignalLenType, settingsSim.RXType);
@@ -105,6 +107,7 @@ for ith = 1: 1: length(SNRStepSim)
         ACKSignalDetectAccur_LongSignal(ith, jth) = accuracies.accurDetectedACK;
         ORSDecodeAccur_LongSignal(ith, jth) = accuracies.accurDecodedORS;
         ACKDecodeAccur_LongSignal(ith, jth) = accuracies.accurDecodedACK;
+        QuaDecodeAccur_LongSignal(ith, jth) = accuracies.accurQua;
     end
 end
 
@@ -134,6 +137,7 @@ ORSDetectProb_ShortSignal = zeros(length(SNRStepAna), length(offsetAna));
 ACKSignalDetectProb_ShortSignal = zeros(length(SNRStepAna), length(offsetAna));
 ORSDecodeProb_ShortSignal = zeros(length(SNRStepAna), length(offsetAna));
 ACKDecodeProb_ShortSignal = zeros(length(SNRStepAna), length(offsetAna));
+QuaDecodeProb_ShortSignal = zeros(length(SNRStepAna), length(offsetAna));
 
 busyDetectProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
 busyDetectMissProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
@@ -142,13 +146,13 @@ ORSDetectProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
 ACKSignalDetectProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
 ORSDecodeProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
 ACKDecodeProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
+QuaDecodeProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
 
 for ith = 1: 1: length(SNRStepAna)
     settingsAna.SNR = SNRStepAna(1, ith);
     disp(['---Runing model for SNR = ',num2str(SNRStepAna(1, ith)),'dB.']);
     for jth = 1: 1: length(offsetAna)
-        settingsAna.offset.isRandom = 0;
-        settingsAna.offset.offsetValue = offsetAna(1, jth);
+        settingsAna.offset = offsetAna(1, jth);
 
         disp(['---Runing model for offset = ', num2str(offsetAna(1, jth)/100),'us.']);
 
@@ -163,6 +167,7 @@ for ith = 1: 1: length(SNRStepAna)
         results = DecodeProbCal(settingsAna);
         ORSDecodeProb_ShortSignal(ith, jth) = results.corrORSDecodeProb;
         ACKDecodeProb_ShortSignal(ith, jth) = results.corrACKDecodeProb;
+        QuaDecodeProb_ShortSignal(ith, jth) = results.corrQuaDecodeProb;
 
         settingsAna.ACKSignalLenType = 'long';
         results = BusyChannelDetectProbCal(settingsAna);
@@ -175,6 +180,7 @@ for ith = 1: 1: length(SNRStepAna)
         results = DecodeProbCal(settingsAna);
         ORSDecodeProb_LongSignal(ith, jth) = results.corrORSDecodeProb;
         ACKDecodeProb_LongSignal(ith, jth) = results.corrACKDecodeProb;
+        QuaDecodeProb_LongSignal(ith, jth) = results.corrQuaDecodeProb;
     end
 end
 
@@ -312,6 +318,33 @@ legend([p1, p2, p3, p4], 'Short ACK (sim)', 'Short ACK (ana)', 'Long ACK (sim)',
 figure;
 jth = 1;
 for ith = 1: 5: length(dispSNRStep)
+    p1 = plot(offsetSim, QuaDecodeAccur_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
+        'Marker', markerSpace(1, 1), 'LineStyle', 'none');
+    hold on;
+    p2 = plot(offsetAna, QuaDecodeProb_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
+        'Marker', 'none', 'LineStyle', lineSpace(1, 1));
+    hold on;
+
+    p3 = plot(offsetSim, QuaDecodeAccur_LongSignal(ith, :), 'Color', colorSpace(1, 2),...
+        'Marker', markerSpace(1, 2), 'LineStyle', 'none');
+    hold on;
+    p4 = plot(offsetAna, QuaDecodeProb_LongSignal(ith, :), 'Color', colorSpace(1, 2),...
+        'Marker', 'none', 'LineStyle', lineSpace(1, 2));
+    hold on;
+
+    jth = jth + 1;
+end
+hold off;
+axis([min(offsetSim), max(offsetSim), 0, 1]);
+xlabel('Sampling offset $$\Delta t$$ ($$\mu s$$)', 'Interpreter', 'latex');
+ylabel({'Successful probability of'; 'detecting sample type'}, 'Interpreter','Latex')
+% legend([p1, p2, p3, p4], 'Short ACK (sim)', 'Short ACK (ana)', 'Long ACK (sim)', 'Long ACK (ana)', 'location', 'best', 'Interpreter','Latex');
+legend([p1, p2, p3, p4], 'Short ACK', 'Short ACK *', 'Long ACK', 'Long ACK *', 'location', 'best', 'Interpreter','Latex');
+
+% Plot correct ORS decoding probability versus sampling offset
+figure;
+jth = 1;
+for ith = 1: 5: length(dispSNRStep)
     p1 = plot(offsetSim, ORSDecodeAccur_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
         'Marker', markerSpace(1, 1), 'LineStyle', 'none');
     hold on;
@@ -329,7 +362,7 @@ for ith = 1: 5: length(dispSNRStep)
     jth = jth + 1;
 end
 hold off;
-% axis([min(offsetSim), max(offsetSim), 0.45, 1]);
+axis([min(offsetSim), max(offsetSim), 0, 1]);
 xlabel('Sampling offset $$\Delta t$$ ($$\mu s$$)', 'Interpreter', 'latex');
 ylabel({'Successful probability of'; 'detecting ORS type'}, 'Interpreter','Latex')
 % legend([p1, p2, p3, p4], 'Short ACK (sim)', 'Short ACK (ana)', 'Long ACK (sim)', 'Long ACK (ana)', 'location', 'best', 'Interpreter','Latex');
@@ -356,7 +389,7 @@ for ith = 1: 5: length(dispSNRStep)
     jth = jth + 1;
 end
 hold off;
-% axis([min(offsetSim), max(offsetSim), 0.45, 1]);
+axis([min(offsetSim), max(offsetSim), 0, 1]);
 xlabel('Sampling offset $$\Delta t$$ ($$\mu s$$)', 'Interpreter', 'latex');
 ylabel({'Successful probability $$P_{C3}(\Delta t)$$ of'; 'detecting ACK type'}, 'Interpreter','Latex')
 % legend([p1, p2, p3, p4], 'Short ACK (sim)', 'Short ACK (ana)', 'Long ACK (sim)', 'Long ACK (ana)', 'location', 'best', 'Interpreter','Latex');
