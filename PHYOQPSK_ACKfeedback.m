@@ -65,13 +65,13 @@ function txWaveform = PHYOQPSK_ACKfeedback(messages, numORS, lenType, RXType)
             im = [zeros(round(OSR/2), 1);  filteredImag(:)];
         end
         waveform = complex(re, im);
-        % Scale signal.
-        % dBm = dBW + 30 
-        initPwd = waveform' * waveform / length(waveform);
-        scaleCoeff = sqrt(db2pow(signalPower_dBm - 30) ./ initPwd);
-        waveform = waveform .* scaleCoeff;
         [num_smpl, ~] = size(waveform);
         txWaveform(ith, :) = [zeros(1, OSR), reshape(waveform, [1, num_smpl]), zeros(1, OSR)];
+        % Scale signal.
+        % dBm = dBW + 30 
+        initPwd = txWaveform(ith, :) * txWaveform(ith, :)' / length(txWaveform(ith, :));
+        scaleCoeff = sqrt(db2pow(signalPower_dBm - 30) ./ initPwd);
+        txWaveform(ith, :) = txWaveform(ith, :) .* scaleCoeff;
     %     figure;
     %     subplot(2, 1, 1);
     %     plot(real(txWaveform(ith, :)));

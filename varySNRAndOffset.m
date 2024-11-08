@@ -39,7 +39,7 @@ ACKDur_LongSignal = 2 .* settingsSim.numORS .* ORSDur;
 ProbPktSucc = 0.8;
 
 %% Simulation and model for metrics versus sampling offset
-SNRStepSim = -5: -5: -10; % Debugging.
+SNRStepSim = 0: -1: -5; % Debugging.
 dispSNRStep = SNRStepSim;
 
 busyDetectAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
@@ -317,7 +317,7 @@ legend([p1, p2, p3, p4], 'Short ACK (sim)', 'Short ACK (ana)', 'Long ACK (sim)',
 % Plot correct ORS decoding probability versus sampling offset
 figure;
 jth = 1;
-for ith = 1: 5: length(dispSNRStep)
+for ith = 1: 1: length(dispSNRStep)
     p1 = plot(offsetSim, QuaDecodeAccur_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
         'Marker', markerSpace(1, 1), 'LineStyle', 'none');
     hold on;
@@ -344,7 +344,7 @@ legend([p1, p2, p3, p4], 'Short ACK', 'Short ACK *', 'Long ACK', 'Long ACK *', '
 % Plot correct ORS decoding probability versus sampling offset
 figure;
 jth = 1;
-for ith = 1: 5: length(dispSNRStep)
+for ith = 1: 1: length(dispSNRStep)
     p1 = plot(offsetSim, ORSDecodeAccur_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
         'Marker', markerSpace(1, 1), 'LineStyle', 'none');
     hold on;

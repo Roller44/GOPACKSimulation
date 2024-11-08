@@ -57,58 +57,81 @@ function accuracies = ACKDetectionWiFi(settings)
         sampInterval = sampInterval * phaseCalInterval * beta;
         [numMsg, sampleSize] = size(samples);
         angles = angle(samples);
+        decodedORS = zeros(numMsg, numORS);
         decodedMsg = zeros(numMsg, 1);
 %         if isequal(lenType, 'short')
 %             quandrants = zeros(numMsg, sampleSize-1);
 %         else
 %             quandrants = zeros(numMsg, sampleSize-1);
 %         end
-        quandrants = zeros(numMsg, sampleSize-1);
+        quandrants = zeros(numMsg, sampleSize);
 
-        if isequal(lenType, 'short')
-            for msg_ith = 1: 1: numMsg
-                for sam_ith = 2: 1: (sampleSize - sampInterval)
-                    if (angles(msg_ith, sam_ith-1) > 0) && (angles(msg_ith ,sam_ith-1) <= (pi/2))
-                        quandrants(msg_ith, sam_ith-1) = 1;
-                    elseif (angles(msg_ith, sam_ith-1) > (pi/2)) && (angles(msg_ith, sam_ith-1) <= pi)
-                        quandrants(msg_ith, sam_ith-1) = 2;
-                    elseif (angles(msg_ith, sam_ith-1) <= 0) && (angles(msg_ith, sam_ith-1) >= -pi/2)
-                        quandrants(msg_ith, sam_ith-1) = 4;
-                    else
-                        quandrants(msg_ith, sam_ith-1) = 3;
-                    end
+        for msg_ith = 1: 1: numMsg
+            for sam_ith = 1: 1: sampleSize
+                if (angles(msg_ith, sam_ith) > 0) && (angles(msg_ith ,sam_ith) <= (pi/2))
+                    quandrants(msg_ith, sam_ith) = 1;
+                elseif (angles(msg_ith, sam_ith) > (pi/2)) && (angles(msg_ith, sam_ith) < pi)
+                    quandrants(msg_ith, sam_ith) = 2;
+                elseif (angles(msg_ith, sam_ith) <= 0) && (angles(msg_ith, sam_ith) > -pi/2)
+                    quandrants(msg_ith, sam_ith) = 4;
+                else
+                    quandrants(msg_ith, sam_ith) = 3;
                 end
-                % decodedMsg(msg_ith, 1) = mode(quandrants(msg_ith, :));
-            end
-            % A wave lasting for 4us can be sampled 4us/(5*0.05us) = 16 times
-            quandrants = quandrants(:, 1:1:(end-15));
-            quandrants = reshape(quandrants, numMsg, [], size(quandrants, 2)/numORS);
-            
-        else
-            for msg_ith = 1: 1: numMsg
-                for sam_ith = 2: 2: sampleSize
-                    tmp = samples(msg_ith, sam_ith/2);
-                    if (atan2(imag(tmp), real(tmp)) > 0) && (atan2(imag(tmp), real(tmp)) <= (pi/2))
-                        quandrants(msg_ith, sam_ith/2) = 1;
-                    elseif (atan2(imag(tmp), real(tmp)) > (pi/2)) && (atan2(imag(tmp), real(tmp)) <= pi)
-                        quandrants(msg_ith, sam_ith/2) = 2;
-                    elseif (atan2(imag(tmp), real(tmp)) <= 0) && (atan2(imag(tmp), real(tmp)) >= -pi/2)
-                        quandrants(msg_ith, sam_ith/2) = 4;
-                    else
-                        quandrants(msg_ith, sam_ith/2) = 3;
-                    end
-                end
-                decodedMsg(msg_ith, 1) = mode(quandrants(msg_ith, :));
-            end
-            % A wave lasting for 4us can be sampled 4us/(5*0.05us) = 16 times
-            quandrants = [quandrants, quandrants(:, end)];
-            quandrants = reshape(quandrants, numMsg, numORS, 2 * 16);
-            for ORSith = 1:1:numORS
-                quandrants(:, :, 17:end) = [];
             end
         end
-        decodedORS = mode(quandrants, 3);
+        
+        if isequal(lenType, 'short')
+            
+            % quandrants = [quandrants, quandrants(:, end)];
+            numSampPerWave = size(quandrants, 2) ./ (numORS + 1);
+            for msg_ith = 1: 1: numMsg
+                for ORS_ith = 1: 1: numORS
+                    quaStart = numSampPerWave * (ORS_ith - 1) + 1;
+                    quaEnd = quaStart - 1 + numSampPerWave;
+                    decodedORS(msg_ith, ORS_ith) = mode(quandrants(msg_ith, quaStart:1:quaEnd));
+                end
+            end
+            
+            % A wave lasting for 4us can be sampled 4us/(5*0.05us) = 16 times
+            % quandrants = quandrants(:, 1:1:(end-15));
+            % quandrants = reshape(quandrants, numMsg, [], size(quandrants, 2)/numORS);
+        else
+            % for msg_ith = 1: 1: numMsg
+            %     for sam_ith = 2: 2: sampleSize
+            %         tmp = samples(msg_ith, sam_ith/2);
+            %         if (atan2(imag(tmp), real(tmp)) > 0) && (atan2(imag(tmp), real(tmp)) <= (pi/2))
+            %             quandrants(msg_ith, sam_ith/2) = 1;
+            %         elseif (atan2(imag(tmp), real(tmp)) > (pi/2)) && (atan2(imag(tmp), real(tmp)) <= pi)
+            %             quandrants(msg_ith, sam_ith/2) = 2;
+            %         elseif (atan2(imag(tmp), real(tmp)) <= 0) && (atan2(imag(tmp), real(tmp)) >= -pi/2)
+            %             quandrants(msg_ith, sam_ith/2) = 4;
+            %         else
+            %             quandrants(msg_ith, sam_ith/2) = 3;
+            %         end
+            %     end
+            %     % decodedMsg(msg_ith, 1) = mode(quandrants(msg_ith, :));
+            % 
+            % end
+            % A wave lasting for 4us can be sampled 4us/(5*0.05us) = 16 times
+            
+            % quandrants = reshape(quandrants, numMsg, numORS, 2 * 16);
+            % quandrants(:, :, 17:end) = [];
+            % quandrants = [quandrants, quandrants(:, end)];
+            numSampPerWave = size(quandrants, 2) ./ numORS;
+            for msg_ith = 1: 1: numMsg
+                for ORS_ith = 1: 1: numORS
+                    quaStart = numSampPerWave * (ORS_ith - 1) + 1;
+                    quaEnd = quaStart - 1 + numSampPerWave/2;
+                    decodedORS(msg_ith, ORS_ith) = mode(quandrants(msg_ith, quaStart:1:quaEnd));
+                end
+            end
+        end
+
+        % decodedORS = mode(quandrants, 3);
         decodedMsg = mode(decodedORS, 2);
+        
+        % decodedORS = repmat(mode(quandrants, 2), 1, 3);
+        % decodedMsg = mode(quandrants, 2);
     end
 
 %% Starts here:
@@ -183,9 +206,9 @@ end
 
 numCorrectACKMsg = size(find(decodedMsg(isACKIndices, :) == trueMsg(isACKIndices, :)), 1);
 
-trueQua = repmat(trueORS, 1, 1, 16);
-numCorrQua = size(find(quandrants(:, :, 10) == trueQua(:, :, 10)), 1);
-accuracies.accurQua = numCorrQua ./ (numACKMsg .* numORS);
+quandrants = quandrants(:, 35);
+numCorrQua = size(find(quandrants == trueMsg), 1);
+accuracies.accurQua = numCorrQua ./ numACKMsg;
 
 if numACKMsg > 0
     accuracies.accurDecodedACK = numCorrectACKMsg / numACKMsg;

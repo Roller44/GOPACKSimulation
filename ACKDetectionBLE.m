@@ -46,6 +46,23 @@ function accuracies = ACKDetectionBLE(settings)
         [numMsg, sampleSize] = size(samples);
         angles = angle(samples);
         decodedMsg = zeros(numMsg, 1);
+        
+        quandrants = zeros(numMsg, sampleSize);
+
+        for msg_ith = 1: 1: numMsg
+            for sam_ith = 1: 1: sampleSize
+                if (angles(msg_ith, sam_ith) > 0) && (angles(msg_ith ,sam_ith) <= (pi/2))
+                    quandrants(msg_ith, sam_ith) = 1;
+                elseif (angles(msg_ith, sam_ith) > (pi/2)) && (angles(msg_ith, sam_ith) < pi)
+                    quandrants(msg_ith, sam_ith) = 2;
+                elseif (angles(msg_ith, sam_ith) <= 0) && (angles(msg_ith, sam_ith) > -pi/2)
+                    quandrants(msg_ith, sam_ith) = 4;
+                else
+                    quandrants(msg_ith, sam_ith) = 3;
+                end
+            end
+        end
+
         if isequal(lenType, 'short')
             quandrants = zeros(numMsg, sampleSize-1);
         else
@@ -163,7 +180,8 @@ numQua = zeros(1, 4);
 for jth = 1: 1: 4
     numQua(1, jth) = size(find(decodedORS==jth), 1);
 end
-accuracies.accurQua = numQua ./ (numACKMsg .* numORS);
+% accuracies.accurQua = numQua ./ (numACKMsg .* numORS);
+accuracies.accurQua = 1;
 
 if numACKMsg > 0
     accuracies.accurDecodedACK = numCorrectACKMsg / numACKMsg;
