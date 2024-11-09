@@ -2,7 +2,7 @@ function results = ACKDetectProbCal(settings)
     global signalPower_dBm;
     
     SNR_dB = settings.SNR;
-    ACKThreshold = settings.ACKThreshold;
+    ORSNumThreshold = settings.ORSNumThreshold;
     ORSPhaseThreshold = settings.ORSPhaseThreshold;
     ORSNumThreshold = settings.ORSNumThreshold;
     numORS = settings.numORS;
@@ -39,6 +39,6 @@ function results = ACKDetectProbCal(settings)
     numPhase = size(samples, 2) - phaseShiftInterval; 
     results.succORSProb = binocdf(ORSNumThreshold, numPhase, succORSProb, 'upper');
     
-    results.succACKProb = binocdf(ACKThreshold, numORS, succORSProb, 'upper');
+    results.succACKProb = binocdf(ORSNumThreshold, numORS, succORSProb, 'upper');
 
 end

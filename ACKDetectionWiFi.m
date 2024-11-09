@@ -41,7 +41,7 @@ function accuracies = ACKDetectionWiFi(settings)
         phaseShiftValues = reshape(phaseShiftValues, size(phaseShiftValues, 1), [], numPhaseShiftPerORS);
         for ACK_ith = 1: 1: size(phaseShiftValues, 1)
             for ORS_ith = 1: 1: size(phaseShiftValues, 2)
-                if length(find(abs(phaseShiftValues(ACK_ith, ORS_ith, :)) < ORSPhaseThreshold)) >= ORSNumThreshold
+                if length(find(abs(phaseShiftValues(ACK_ith, ORS_ith, :)) < ORSPhaseThreshold)) > ORSNumThreshold
                     numDetectedORS(ACK_ith, 1) = numDetectedORS(ACK_ith, 1) + 1;
                 end
             end

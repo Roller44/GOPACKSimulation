@@ -10,7 +10,7 @@ offsetSim = -50: 10: 50; % [-50, -45, -35, -25, -15, -5, 5, 15, 25, 35, 45, 50];
 offsetAna = -50: 10: 50; % us
 % offsetAna = offsetSim;
 
-settingsSim.ACKThreshold = 8;
+
 settingsSim.ORSPhaseThreshold = 1;
 settingsSim.ORSNumThreshold = 1;
 settingsSim.powerThreshold = 0.013;
@@ -19,8 +19,10 @@ settingsSim.offset.offsetValue = 20;
 settingsSim.offset.max = 50;
 settingsSim.offset.min = -50;
 % settingsSim.numORS = 15;
+% settingsSim.ACKThreshold = 8;
 % settingsSim.RXType = 'BLE';
 settingsSim.numORS = 3;
+settingsSim.ACKThreshold = 1;
 settingsSim.RXType = 'WiFi';
 
 % Frame duration
@@ -39,7 +41,7 @@ ACKDur_LongSignal = 2 .* settingsSim.numORS .* ORSDur;
 ProbPktSucc = 0.8;
 
 %% Simulation and model for metrics versus sampling offset
-SNRStepSim = 0: -1: -5; % Debugging.
+SNRStepSim = 10: -1: -10; % Debugging.
 dispSNRStep = SNRStepSim;
 
 busyDetectAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
@@ -127,6 +129,7 @@ end
 SNRStepAna = SNRStepSim;
 settingsAna = settingsSim;
 settingsAna.ACKCorrectCases = ACKCorrectList(settingsAna.numORS);
+
 % settingsAna.busyProb = busyProb;
 % settingsAna.notACKProb = notACKProb;
 
@@ -150,7 +153,7 @@ QuaDecodeProb_LongSignal = zeros(length(SNRStepAna), length(offsetAna));
 
 for ith = 1: 1: length(SNRStepAna)
     settingsAna.SNR = SNRStepAna(1, ith);
-    disp(['---Runing model for SNR = ',num2str(SNRStepAna(1, ith)),'dB.']);
+    disp(['Runing model for SNR = ',num2str(SNRStepAna(1, ith)),'dB.']);
     for jth = 1: 1: length(offsetAna)
         settingsAna.offset = offsetAna(1, jth);
 
@@ -264,7 +267,7 @@ legend([p1, p2, p3, p4], 'Short ACK (sim)', 'Short ACK (ana)', 'Long ACK (sim)',
 % Plot successful ACK signal detection probability versus offset
 figure;
 jth = 1;
-for ith = 1: 5: length(dispSNRStep)
+for ith = 1: 1: length(dispSNRStep)
     p1 = plot(offsetSim, ACKSignalDetectAccur_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
         'Marker', markerSpace(1, 1), 'LineStyle', 'none');
     hold on;
@@ -371,7 +374,7 @@ legend([p1, p2, p3, p4], 'Short ACK', 'Short ACK *', 'Long ACK', 'Long ACK *', '
 % Plot correct ACK decoding probability versus sampling offset
 figure;
 jth = 1;
-for ith = 1: 5: length(dispSNRStep)
+for ith = 1: 1: length(dispSNRStep)
     p1 = plot(offsetSim, ACKDecodeAccur_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
         'Marker', markerSpace(1, 1), 'LineStyle', 'none');
     hold on;
