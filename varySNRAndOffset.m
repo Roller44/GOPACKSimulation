@@ -18,12 +18,12 @@ settingsSim.offset.isRandom = 0;
 settingsSim.offset.offsetValue = 20;
 settingsSim.offset.max = 50;
 settingsSim.offset.min = -50;
-% settingsSim.numORS = 15;
-% settingsSim.ACKThreshold = 8;
-% settingsSim.RXType = 'BLE';
-settingsSim.numORS = 3;
-settingsSim.ACKThreshold = 1;
-settingsSim.RXType = 'WiFi';
+settingsSim.numORS = 15;
+settingsSim.ACKThreshold = 8;
+settingsSim.RXType = 'BLE';
+% settingsSim.numORS = 3;
+% settingsSim.ACKThreshold = 1;
+% settingsSim.RXType = 'WiFi';
 
 % Frame duration
 PreambleDur = 128;
@@ -41,7 +41,7 @@ ACKDur_LongSignal = 2 .* settingsSim.numORS .* ORSDur;
 ProbPktSucc = 0.8;
 
 %% Simulation and model for metrics versus sampling offset
-SNRStepSim = 10: -1: -10; % Debugging.
+SNRStepSim = 10: -1: -5; % Debugging.
 dispSNRStep = SNRStepSim;
 
 busyDetectAccur_ShortSignal = zeros(length(SNRStepSim), length(offsetSim));
@@ -213,7 +213,7 @@ dispNoisePwr_dBm = signalPower_dBm - dispSNRStep;
 % Plot successful ACK detection probability versus sampling offset
 figure;
 jth = 1;
-for ith = 1: 5: length(dispSNRStep)
+for ith = 1: 1: length(dispSNRStep)
     p1 = plot(offsetSim, ACKDetectAccur_ShortSignal(ith, :), 'Color', colorSpace(1, 1),...
         'Marker', markerSpace(1, 1), 'LineStyle', 'none');
     hold on;
