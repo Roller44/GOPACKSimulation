@@ -1,6 +1,6 @@
 function samples = Sampling(waveform, offset, RXType)
     % Sampling with offset
-    OSR = 100; % = 1us
+    global OSR; % = 1us
     
     if isequal(RXType, 'BLE')
         sampInterval = 1; % us

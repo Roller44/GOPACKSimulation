@@ -1,6 +1,6 @@
 function txWaveform = PHYOQPSK_ACKfeedback(messages, numORS, lenType, RXType)
     global signalPower_dBm;
-    OSR = 100;
+    global OSR;
     
     oddChipMap = [1; 0; 0; 1; 1/2; 0];
     evenChipMap = [1; 1; 0; 0; 1/2; 0];

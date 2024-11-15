@@ -3,12 +3,16 @@ clc;
 %% Assume the ZigBee TX power is 10dBm.
 global signalPower_dBm;
 signalPower_dBm = 10;
+global OSR;
+OSR = 1000;
 
-%% parameter
-maxTimes = 2000;
-offsetSim = -50: 10: 50; % [-50, -45, -35, -25, -15, -5, 5, 15, 25, 35, 45, 50]; % us
-offsetAna = -50: 1: 50; % us
+%% Global parameter
+maxTimes = 5000;
+offsetSim = -0.5: 0.1: 0.5; % us
+offsetAna = -0.5: 0.001: 0.5; % us
 % offsetAna = offsetSim;
+offsetSim = offsetSim .* OSR;
+offsetAna = offsetAna .* OSR;
 
 
 settingsSim.ORSPhaseThreshold = 1;
@@ -18,8 +22,10 @@ settingsSim.offset.isRandom = 0;
 settingsSim.offset.offsetValue = 20;
 settingsSim.offset.max = 50;
 settingsSim.offset.min = -50;
+
+%% Simulations for ZigBee-to-BLE feedback, under various SNRs and sampling offsets.
 settingsSim.numORS = 15;
-settingsSim.ACKThreshold = 8;
+settingsSim.ACKThreshold = 9;
 settingsSim.RXType = 'BLE';
 
 % Frame duration
@@ -37,7 +43,6 @@ ACKDur_ShortSignal = (settingsSim.numORS + 1) .* ORSDur;
 ACKDur_LongSignal = 2 .* settingsSim.numORS .* ORSDur;
 ProbPktSucc = 0.8;
 
-%% Simulations for ZigBee-to-BLE feedback, under various SNRs and sampling offsets.
 SNRStepSim = -5: 1: 5;
 
 busyDetectAccur_ShortSignal_Z2B = zeros(length(SNRStepSim), length(offsetSim));
@@ -119,6 +124,97 @@ for ith = 1: 1: length(numSym)
     for jth = 1: 1: length(SNRStepSim)
         overHeadSim_ShortSignal_Z2B(ith, jth) = (packetDur(1, ith) + SIFSDur + ACKDur_ShortSignal) .* (1./ (ProbPktSucc .* ACKReceptAccur_ShortSignal_Z2B(jth, 1)));
         overHeadSim_LongSignal_Z2B(ith, jth) = (packetDur(1, ith) + SIFSDur + ACKDur_LongSignal) .* (1./ (ProbPktSucc .* ACKReceptAccur_LongSignal_Z2B(jth, 1)));
+    end
+end
+
+%% Models for ZigBee-to-BLE feedback under various SNRs and sampling offsets.
+
+% Frame duration
+PreambleDur = 128;
+SFDDur = 32;
+SHRDur = PreambleDur + SFDDur;
+PHRDur = 32;
+HeaderDur = SHRDur + PHRDur;    
+numSym = 10: 20: 50; % 5, 10, and 25 bytes
+PayloadDur = 16*numSym;
+SIFSDur = 12*16; % The length of a SIFS is equal to that of 16 symbols.
+packetDur = HeaderDur + PayloadDur;
+ORSDur = 1;
+ACKDur_ShortSignal = (settingsSim.numORS + 1) .* ORSDur;
+ACKDur_LongSignal = 2 .* settingsSim.numORS .* ORSDur;
+ProbPktSucc = 0.8;
+
+SNRStepAna = SNRStepSim;
+settingsAna = settingsSim;
+settingsAna.ACKCorrectCases = ACKCorrectList(settingsAna.numORS);
+
+% settingsAna.busyProb = busyProb;
+% settingsAna.notACKProb = notACKProb;
+
+
+busyDetectProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+busyDetectMissProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+busyDetectFalseAlarmProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+ORSDetectProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+ACKSignalDetectProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+ORSDecodeProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+ACKDecodeProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+QuaDecodeProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+
+busyDetectProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+busyDetectMissProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+busyDetectFalseAlarmProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+ORSDetectProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+ACKSignalDetectProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+ORSDecodeProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+ACKDecodeProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+QuaDecodeProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
+
+for ith = 1: 1: length(SNRStepAna)
+    settingsAna.SNR = SNRStepAna(1, ith);
+    disp(['Runing model for SNR = ',num2str(SNRStepAna(1, ith)),'dB.']);
+    for jth = 1: 1: length(offsetAna)
+        settingsAna.offset = offsetAna(1, jth);
+
+        disp(['---Runing model for ZigBee-to-BlE feedback, under SNR = ', num2str(settingsAna.SNR),'dB and offset = ', num2str(offsetAna(1, jth)/100),'us.']);
+        settingsAna.ACKSignalLenType = 'short';
+        results = BusyChannelDetectProbCal(settingsAna);
+        busyDetectProb_ShortSignal_Z2B(ith, jth) = results.succProb;
+        busyDetectMissProb_ShortSignal_Z2B(ith, jth) = results.succProb;
+        busyDetectFalseAlarmProb_ShortSignal_Z2B(ith, jth) = results.succProb;
+        results = ACKDetectProbCal(settingsAna);
+        ORSDetectProb_ShortSignal_Z2B(ith, jth) = results.succORSProb;
+        ACKSignalDetectProb_ShortSignal_Z2B(ith, jth) = results.succACKProb;
+        results = DecodeProbCal(settingsAna);
+        ORSDecodeProb_ShortSignal_Z2B(ith, jth) = results.corrORSDecodeProb;
+        ACKDecodeProb_ShortSignal_Z2B(ith, jth) = results.corrACKDecodeProb;
+        QuaDecodeProb_ShortSignal_Z2B(ith, jth) = results.corrQuaDecodeProb;
+
+        settingsAna.ACKSignalLenType = 'long';
+        results = BusyChannelDetectProbCal(settingsAna);
+        busyDetectProb_LongSignal_Z2B(ith, jth) = results.succProb;
+        busyDetectMissProb_LongSignal_Z2B(ith, jth) = results.succProb;
+        busyDetectFalseAlarmProb_LongSignal_Z2B(ith, jth) = results.succProb;
+        results = ACKDetectProbCal(settingsAna);
+        ORSDetectProb_LongSignal_Z2B(ith, jth) = results.succORSProb;
+        ACKSignalDetectProb_LongSignal_Z2B(ith, jth) = results.succACKProb;
+        results = DecodeProbCal(settingsAna);
+        ORSDecodeProb_LongSignal_Z2B(ith, jth) = results.corrORSDecodeProb;
+        ACKDecodeProb_LongSignal_Z2B(ith, jth) = results.corrACKDecodeProb;
+        QuaDecodeProb_LongSignal_Z2B(ith, jth) = results.corrQuaDecodeProb;
+    end
+end
+
+ACKDetectProb_ShortSignal_Z2B = busyDetectProb_ShortSignal_Z2B .* ACKSignalDetectProb_ShortSignal_Z2B;
+ACKDetectProb_LongSignal_Z2B = busyDetectProb_LongSignal_Z2B .* ACKSignalDetectProb_LongSignal_Z2B;
+ACKReceptProb_ShortSignal_Z2B = sum((ACKDetectProb_ShortSignal_Z2B .* ACKDecodeProb_ShortSignal_Z2B), 2) ./ size(offsetAna, 2);
+ACKReceptProb_LongSignal_Z2B = sum((ACKDetectProb_LongSignal_Z2B .* ACKDecodeProb_LongSignal_Z2B), 2) ./ size(offsetAna, 2);
+overHeadAna_ShortSignal_Z2B = zeros(length(numSym), length(SNRStepAna));
+overHeadAna_LongSignal_Z2B = zeros(length(numSym), length(SNRStepAna));
+for ith = 1: 1: length(numSym)
+    for jth = 1: 1: length(SNRStepAna)
+        overHeadAna_ShortSignal_Z2B(ith, jth) = (packetDur(1, ith) + SIFSDur + ACKDur_ShortSignal) .* (1./ (ProbPktSucc .* ACKReceptProb_ShortSignal_Z2B(jth, 1)));
+        overHeadAna_LongSignal_Z2B(ith, jth) = (packetDur(1, ith) + SIFSDur + ACKDur_LongSignal) .* (1./ (ProbPktSucc .* ACKReceptProb_LongSignal_Z2B(jth, 1)));
     end
 end
 
@@ -224,100 +320,6 @@ for ith = 1: 1: length(numSym)
     end
 end
 
-%% Models for ZigBee-to-BLE feedback under various SNRs and sampling offsets.
-settingsSim.numORS = 15;
-settingsSim.ACKThreshold = 8;
-settingsSim.RXType = 'BLE';
-
-% Frame duration
-PreambleDur = 128;
-SFDDur = 32;
-SHRDur = PreambleDur + SFDDur;
-PHRDur = 32;
-HeaderDur = SHRDur + PHRDur;    
-numSym = 10: 20: 50; % 5, 10, and 25 bytes
-PayloadDur = 16*numSym;
-SIFSDur = 12*16; % The length of a SIFS is equal to that of 16 symbols.
-packetDur = HeaderDur + PayloadDur;
-ORSDur = 1;
-ACKDur_ShortSignal = (settingsSim.numORS + 1) .* ORSDur;
-ACKDur_LongSignal = 2 .* settingsSim.numORS .* ORSDur;
-ProbPktSucc = 0.8;
-
-SNRStepAna = SNRStepSim;
-settingsAna = settingsSim;
-settingsAna.ACKCorrectCases = ACKCorrectList(settingsAna.numORS);
-
-% settingsAna.busyProb = busyProb;
-% settingsAna.notACKProb = notACKProb;
-
-
-busyDetectProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-busyDetectMissProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-busyDetectFalseAlarmProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-ORSDetectProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-ACKSignalDetectProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-ORSDecodeProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-ACKDecodeProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-QuaDecodeProb_ShortSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-
-busyDetectProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-busyDetectMissProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-busyDetectFalseAlarmProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-ORSDetectProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-ACKSignalDetectProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-ORSDecodeProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-ACKDecodeProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-QuaDecodeProb_LongSignal_Z2B = zeros(length(SNRStepAna), length(offsetAna));
-
-for ith = 1: 1: length(SNRStepAna)
-    settingsAna.SNR = SNRStepAna(1, ith);
-    disp(['Runing model for SNR = ',num2str(SNRStepAna(1, ith)),'dB.']);
-    for jth = 1: 1: length(offsetAna)
-        settingsAna.offset = offsetAna(1, jth);
-
-        disp(['---Runing model for ZigBee-to-BlE feedback, under SNR = ', num2str(settingsAna.SNR),'dB and offset = ', num2str(offsetAna(1, jth)/100),'us.']);
-        settingsAna.ACKSignalLenType = 'short';
-        results = BusyChannelDetectProbCal(settingsAna);
-        busyDetectProb_ShortSignal_Z2B(ith, jth) = results.succProb;
-        busyDetectMissProb_ShortSignal_Z2B(ith, jth) = results.succProb;
-        busyDetectFalseAlarmProb_ShortSignal_Z2B(ith, jth) = results.succProb;
-        results = ACKDetectProbCal(settingsAna);
-        ORSDetectProb_ShortSignal_Z2B(ith, jth) = results.succORSProb;
-        ACKSignalDetectProb_ShortSignal_Z2B(ith, jth) = results.succACKProb;
-        results = DecodeProbCal(settingsAna);
-        ORSDecodeProb_ShortSignal_Z2B(ith, jth) = results.corrORSDecodeProb;
-        ACKDecodeProb_ShortSignal_Z2B(ith, jth) = results.corrACKDecodeProb;
-        QuaDecodeProb_ShortSignal_Z2B(ith, jth) = results.corrQuaDecodeProb;
-
-        settingsAna.ACKSignalLenType = 'long';
-        results = BusyChannelDetectProbCal(settingsAna);
-        busyDetectProb_LongSignal_Z2B(ith, jth) = results.succProb;
-        busyDetectMissProb_LongSignal_Z2B(ith, jth) = results.succProb;
-        busyDetectFalseAlarmProb_LongSignal_Z2B(ith, jth) = results.succProb;
-        results = ACKDetectProbCal(settingsAna);
-        ORSDetectProb_LongSignal_Z2B(ith, jth) = results.succORSProb;
-        ACKSignalDetectProb_LongSignal_Z2B(ith, jth) = results.succACKProb;
-        results = DecodeProbCal(settingsAna);
-        ORSDecodeProb_LongSignal_Z2B(ith, jth) = results.corrORSDecodeProb;
-        ACKDecodeProb_LongSignal_Z2B(ith, jth) = results.corrACKDecodeProb;
-        QuaDecodeProb_LongSignal_Z2B(ith, jth) = results.corrQuaDecodeProb;
-    end
-end
-
-ACKDetectProb_ShortSignal_Z2B = busyDetectProb_ShortSignal_Z2B .* ACKSignalDetectProb_ShortSignal_Z2B;
-ACKDetectProb_LongSignal_Z2B = busyDetectProb_LongSignal_Z2B .* ACKSignalDetectProb_LongSignal_Z2B;
-ACKReceptProb_ShortSignal_Z2B = sum((ACKDetectProb_ShortSignal_Z2B .* ACKDecodeProb_ShortSignal_Z2B), 2) ./ size(offsetAna, 2);
-ACKReceptProb_LongSignal_Z2B = sum((ACKDetectProb_LongSignal_Z2B .* ACKDecodeProb_LongSignal_Z2B), 2) ./ size(offsetAna, 2);
-overHeadAna_ShortSignal_Z2B = zeros(length(numSym), length(SNRStepAna));
-overHeadAna_LongSignal_Z2B = zeros(length(numSym), length(SNRStepAna));
-for ith = 1: 1: length(numSym)
-    for jth = 1: 1: length(SNRStepAna)
-        overHeadAna_ShortSignal_Z2B(ith, jth) = (packetDur(1, ith) + SIFSDur + ACKDur_ShortSignal) .* (1./ (ProbPktSucc .* ACKReceptProb_ShortSignal_Z2B(jth, 1)));
-        overHeadAna_LongSignal_Z2B(ith, jth) = (packetDur(1, ith) + SIFSDur + ACKDur_LongSignal) .* (1./ (ProbPktSucc .* ACKReceptProb_LongSignal_Z2B(jth, 1)));
-    end
-end
-
 %% Models for ZigBee-to-WiFi feedback under various SNRs and sampling offsets.
 settingsSim.numORS = 3;
 settingsSim.ACKThreshold = 1;
@@ -413,8 +415,8 @@ for ith = 1: 1: length(numSym)
     end
 end
 
-offsetSim = offsetSim / 100;
-offsetAna = offsetAna / 100;
+offsetSim = offsetSim / OSR;
+offsetAna = offsetAna / OSR;
 
 lineSpace = {'-', '--', '-.', ':'};
 markerSpace = ['o', '+', '*', '^'];
@@ -459,8 +461,8 @@ axis([min(offsetSim), max(offsetSim), 0.6, 1]);
 xlabel('Sampling offset $$\Delta t$$', 'Interpreter', 'latex');
 ylabel('Successful probability $$P_{d}(\Delta t)$$ of ACK detection', 'Interpreter','Latex');
 legend([p1, p2, p3, p4, p5, p6, p7, p8],...
-    'Short ACK (Z2B)', 'Short ACK * (Z2B)', 'Long ACK (Z2B)', 'Long ACK * (Z2B)',...
-    'Short ACK (Z2W)', 'Short ACK * (Z2W)', 'Long ACK (Z2W)', 'Long ACK * (Z2W)',...
+    'Short ACK (Z&B)', 'Short ACK * (Z&B)', 'Long ACK (Z&B)', 'Long ACK * (Z&B)',...
+    'Short ACK (Z&W)', 'Short ACK * (Z&W)', 'Long ACK (Z&W)', 'Long ACK * (Z&W)',...
     'location', 'best', 'Interpreter','Latex');
 
 
@@ -503,8 +505,8 @@ axis([min(offsetSim), max(offsetSim), 0.5, 1]);
 xlabel('Sampling offset $$\Delta t$$', 'Interpreter', 'latex');
 ylabel({'Successful probability $$P_{C1}(\Delta t)$$';' of detecting busy channel'}, 'Interpreter', 'Latex');
 legend([p1, p2, p3, p4, p5, p6, p7, p8],...
-    'Short ACK (Z2B)', 'Short ACK * (Z2B)', 'Long ACK (Z2B)', 'Long ACK * (Z2B)',...
-    'Short ACK (Z2W)', 'Short ACK * (Z2W)', 'Long ACK (Z2W)', 'Long ACK * (Z2W)',...
+    'Short ACK (Z&B)', 'Short ACK * (Z&B)', 'Long ACK (Z&B)', 'Long ACK * (Z&B)',...
+    'Short ACK (Z&W)', 'Short ACK * (Z&W)', 'Long ACK (Z&W)', 'Long ACK * (Z&W)',...
     'location', 'best', 'Interpreter','Latex');
 
 
@@ -547,8 +549,8 @@ axis([min(offsetSim), max(offsetSim), 0, 1]);
 xlabel('Sampling offset $$\Delta t$$ ($$\mu s$$)', 'Interpreter', 'latex');
 ylabel({'Successful probability $$P_{C2}(\Delta t)$$'; 'of detecting an ACK signal'}, 'Interpreter','Latex')
 legend([p1, p2, p3, p4, p5, p6, p7, p8],...
-    'Short ACK (Z2B)', 'Short ACK * (Z2B)', 'Long ACK (Z2B)', 'Long ACK * (Z2B)',...
-    'Short ACK (Z2W)', 'Short ACK * (Z2W)', 'Long ACK (Z2W)', 'Long ACK * (Z2W)',...
+    'Short ACK (Z&B)', 'Short ACK * (Z&B)', 'Long ACK (Z&B)', 'Long ACK * (Z&B)',...
+    'Short ACK (Z&W)', 'Short ACK * (Z&W)', 'Long ACK (Z&W)', 'Long ACK * (Z&W)',...
     'location', 'best', 'Interpreter','Latex');
 
 % % Plot successful ORS detection probability versus offset
@@ -590,8 +592,8 @@ axis([min(offsetSim), max(offsetSim), 0, 1]);
 xlabel('Sampling offset $$\Delta t$$ ($$\mu s$$)', 'Interpreter', 'latex');
 ylabel('Successful probability $$P_{o}^{s}(\Delta t)$$ of ORS detection', 'Interpreter','Latex')
 legend([p1, p2, p3, p4, p5, p6, p7, p8],...
-    'Short ACK (Z2B)', 'Short ACK * (Z2B)', 'Long ACK (Z2B)', 'Long ACK * (Z2B)',...
-    'Short ACK (Z2W)', 'Short ACK * (Z2W)', 'Long ACK (Z2W)', 'Long ACK * (Z2W)',...
+    'Short ACK (Z&B)', 'Short ACK * (Z&B)', 'Long ACK (Z&B)', 'Long ACK * (Z&B)',...
+    'Short ACK (Z&W)', 'Short ACK * (Z&W)', 'Long ACK (Z&W)', 'Long ACK * (Z&W)',...
     'location', 'best', 'Interpreter','Latex');
 
 % Plot correct ORS decoding probability versus sampling offset
@@ -633,8 +635,8 @@ axis([min(offsetSim), max(offsetSim), 0, 1]);
 xlabel('Sampling offset $$\Delta t$$ ($$\mu s$$)', 'Interpreter', 'latex');
 ylabel({'Successful probability of'; 'detecting sample type'}, 'Interpreter','Latex')
 legend([p1, p2, p3, p4, p5, p6, p7, p8],...
-    'Short ACK (Z2B)', 'Short ACK * (Z2B)', 'Long ACK (Z2B)', 'Long ACK * (Z2B)',...
-    'Short ACK (Z2W)', 'Short ACK * (Z2W)', 'Long ACK (Z2W)', 'Long ACK * (Z2W)',...
+    'Short ACK (Z&B)', 'Short ACK * (Z&B)', 'Long ACK (Z&B)', 'Long ACK * (Z&B)',...
+    'Short ACK (Z&W)', 'Short ACK * (Z&W)', 'Long ACK (Z&W)', 'Long ACK * (Z&W)',...
     'location', 'best', 'Interpreter','Latex');
 
 % Plot correct ORS decoding probability versus sampling offset
@@ -676,8 +678,8 @@ axis([min(offsetSim), max(offsetSim), 0, 1]);
 xlabel('Sampling offset $$\Delta t$$ ($$\mu s$$)', 'Interpreter', 'latex');
 ylabel({'Successful probability of'; 'detecting ORS type'}, 'Interpreter','Latex')
 legend([p1, p2, p3, p4, p5, p6, p7, p8],...
-    'Short ACK (Z2B)', 'Short ACK * (Z2B)', 'Long ACK (Z2B)', 'Long ACK * (Z2B)',...
-    'Short ACK (Z2W)', 'Short ACK * (Z2W)', 'Long ACK (Z2W)', 'Long ACK * (Z2W)',...
+    'Short ACK (Z&B)', 'Short ACK * (Z&B)', 'Long ACK (Z&B)', 'Long ACK * (Z&B)',...
+    'Short ACK (Z&W)', 'Short ACK * (Z&W)', 'Long ACK (Z&W)', 'Long ACK * (Z&W)',...
     'location', 'best', 'Interpreter','Latex');
 
 % Plot correct ACK decoding probability versus sampling offset
@@ -715,42 +717,42 @@ for ith = 1: 5: length(SNRStepSim)
     jth = jth + 1;
 end
 hold off;
-axis([min(offsetSim), max(offsetSim), 0.5, 1]);
+axis([min(offsetSim), max(offsetSim), 0, 1]);
 xlabel('Sampling offset $$\Delta t$$ ($$\mu s$$)', 'Interpreter', 'latex');
 ylabel({'Successful probability $$P_{C3}(\Delta t)$$ of'; 'detecting ACK type'}, 'Interpreter','Latex')
 legend([p1, p2, p3, p4, p5, p6, p7, p8],...
-    'Short ACK (Z2B)', 'Short ACK * (Z2B)', 'Long ACK (Z2B)', 'Long ACK * (Z2B)',...
-    'Short ACK (Z2W)', 'Short ACK * (Z2W)', 'Long ACK (Z2W)', 'Long ACK * (Z2W)',...
+    'Short ACK (Z&B)', 'Short ACK * (Z&B)', 'Long ACK (Z&B)', 'Long ACK * (Z&B)',...
+    'Short ACK (Z&W)', 'Short ACK * (Z&W)', 'Long ACK (Z&W)', 'Long ACK * (Z&W)',...
     'location', 'best', 'Interpreter','Latex');
 
 % Plot succuessful ACK reception probability
 figure;
 plot(SNRStepSim, ACKReceptAccur_ShortSignal_Z2B(:, 1), 'Color', colorSpace(1, 1),...
-    'Marker', markerSpace(1, 1), 'LineStyle', 'none', 'DisplayName', 'Short ACK (Z2B)');
+    'Marker', markerSpace(1, 1), 'LineStyle', 'none', 'DisplayName', 'Short ACK (Z&B)');
 hold on;
 plot(SNRStepAna, ACKReceptProb_ShortSignal_Z2B(:, 1), 'Color', colorSpace(1, 1),...
-    'Marker', 'none', 'LineStyle', lineSpace(1, 1), 'DisplayName', 'Short ACK * (Z2B)');
+    'Marker', 'none', 'LineStyle', lineSpace(1, 1), 'DisplayName', 'Short ACK * (Z&B)');
 hold on;
 
 plot(SNRStepSim, ACKReceptAccur_LongSignal_Z2B(:, 1), 'Color', colorSpace(1, 2),...
-    'Marker', markerSpace(1, 2), 'LineStyle', 'none', 'DisplayName', 'Long ACK (Z2B)');
+    'Marker', markerSpace(1, 2), 'LineStyle', 'none', 'DisplayName', 'Long ACK (Z&B)');
 hold on;
 plot(SNRStepAna, ACKReceptProb_LongSignal_Z2B(:, 1), 'Color', colorSpace(1, 2),...
-    'Marker', 'none', 'LineStyle', lineSpace(1, 2), 'DisplayName', 'Long ACK * (Z2B)');
+    'Marker', 'none', 'LineStyle', lineSpace(1, 2), 'DisplayName', 'Long ACK * (Z&B)');
 hold on;
 
 plot(SNRStepSim, ACKReceptAccur_ShortSignal_Z2W(:, 1), 'Color', colorSpace(1, 3),...
-    'Marker', markerSpace(1, 3), 'LineStyle', 'none', 'DisplayName', 'Short ACK (Z2W)');
+    'Marker', markerSpace(1, 3), 'LineStyle', 'none', 'DisplayName', 'Short ACK (Z&W)');
 hold on;
 plot(SNRStepAna, ACKReceptProb_ShortSignal_Z2W(:, 1), 'Color', colorSpace(1, 3),...
-    'Marker', 'none', 'LineStyle', lineSpace(1, 3), 'DisplayName', 'Short ACK * (Z2W)');
+    'Marker', 'none', 'LineStyle', lineSpace(1, 3), 'DisplayName', 'Short ACK * (Z&W)');
 hold on;
 
 plot(SNRStepSim, ACKReceptAccur_LongSignal_Z2W(:, 1), 'Color', colorSpace(1, 4),...
-    'Marker', markerSpace(1, 4), 'LineStyle', 'none', 'DisplayName', 'Long ACK (Z2W)');
+    'Marker', markerSpace(1, 4), 'LineStyle', 'none', 'DisplayName', 'Long ACK (Z&W)');
 hold on;
 plot(SNRStepAna, ACKReceptProb_LongSignal_Z2W(:, 1), 'Color', colorSpace(1, 4),...
-    'Marker', 'none', 'LineStyle', lineSpace(1, 4), 'DisplayName', 'Long ACK * (Z2W)');
+    'Marker', 'none', 'LineStyle', lineSpace(1, 4), 'DisplayName', 'Long ACK * (Z&W)');
 hold off;
 
 axis([min(SNRStepSim), max(SNRStepSim), 0, 1]);
@@ -799,6 +801,6 @@ axis([min(dispSNR), max(dispSNR), 0, 13]);
 xlabel('SNR (dB)', 'Interpreter', 'latex');
 ylabel('Mean complete transmission time $$E(\Omega)$$ ($$\mu s$$)', 'Interpreter','Latex')
 legend([p1, p2, p3, p4, p5, p6, p7, p8],...
-    'Short ACK (Z2B)', 'Short ACK * (Z2B)', 'Long ACK (Z2B)', 'Long ACK * (Z2B)',...
-    'Short ACK (Z2W)', 'Short ACK * (Z2W)', 'Long ACK (Z2W)', 'Long ACK * (Z2W)',...
+    'Short ACK (Z&B)', 'Short ACK * (Z&B)', 'Long ACK (Z&B)', 'Long ACK * (Z&B)',...
+    'Short ACK (Z&W)', 'Short ACK * (Z&W)', 'Long ACK (Z&W)', 'Long ACK * (Z&W)',...
     'location', 'best', 'Interpreter','Latex');

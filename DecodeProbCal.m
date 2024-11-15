@@ -24,12 +24,12 @@ global signalPower_dBm;
         sampleImag = imag(samples);
 
         % Calculate noise power
-        dBm = dBW + 30 
-        noisePower_mW = db2pow(signalPower_dBm - SNR_dB - 30) / 2;
+        % dBm = dBW + 30 
+        % noisePower_mW = db2pow(signalPower_dBm - SNR_dB - 30) / 2;
         % An alternative approach
-        % signalPower_mW = samples * samples' / length(samples);
-        % SNR_linear = 10^(SNR_dB / 10);
-        % noisePower_mW = signalPower_mW / SNR_linear / 2;
+        signalPower_mW = samples * samples' / length(samples);
+        SNR_linear = 10^(SNR_dB / 10);
+        noisePower_mW = signalPower_mW / SNR_linear / 2;
         
 
         quaProb = zeros(4, numSampPerWave);
@@ -47,15 +47,17 @@ global signalPower_dBm;
     end
 
     ACKCorrectCases = settings.ACKCorrectCases;
+    numACKCorrectCases = size(ACKCorrectCases, 1);
     message = 1;
     sampQuaProb = QuaProbCal(message, offset, numORS, lenType, SNR_dB, RXType);
     
     if isequal(RXType, 'BLE')
+        
         results.corrQuaDecodeProb = sampQuaProb(1, 1);
         results.corrORSDecodeProb = sampQuaProb(1, 1);
         quaProb = sampQuaProb';
     else
-    
+        
         results.corrQuaDecodeProb = sampQuaProb(1, 3);
     
         meanProb = sum(sampQuaProb, 2)';
@@ -94,11 +96,10 @@ global signalPower_dBm;
         % Compensate approximation errors.
         tmp = 1 - sum(probTmp);
         quaProb = probTmp + tmp./size(probTmp, 2);
-        results.corrORSDecodeProb = quaProb(1, 1);
+        results.corrORSDecodeProb = quaProb(1, 1);        
         
     end
     
-    numACKCorrectCases = size(ACKCorrectCases, 1);
     probTmp = 0;
     for case_ith = 1: 1: numACKCorrectCases
         probTmp = probTmp + mnpdf(ACKCorrectCases(case_ith, :), quaProb);
