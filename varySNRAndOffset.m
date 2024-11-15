@@ -4,12 +4,12 @@ clc;
 global signalPower_dBm;
 signalPower_dBm = 10;
 global OSR;
-OSR = 1000;
+OSR = 100;
 
 %% Global parameter
 maxTimes = 5000;
-offsetSim = -0.5: 0.1: 0.5; % us
-offsetAna = -0.5: 0.001: 0.5; % us
+offsetSim = -0.5: 10/OSR: 0.5; % us
+offsetAna = -0.5: 1/OSR: 0.5; % us
 % offsetAna = offsetSim;
 offsetSim = offsetSim .* OSR;
 offsetAna = offsetAna .* OSR;
@@ -70,7 +70,7 @@ for ith = 1: 1: length(SNRStepSim)
     disp(['Runing simulation for SNR = ',num2str(SNR),'dB.']);
     for jth = 1: 1: length(offsetSim)
         settingsSim.offset = offsetSim(1, jth);
-        disp(['---Runing simulation for ZigBee-to-BlE feedback, under SNR = ', num2str(SNR),'dB and offset = ', num2str(offsetSim(1, jth)/100),'us.']);
+        disp(['---Runing simulation for ZigBee-to-BlE feedback, under SNR = ', num2str(SNR),'dB and offset = ', num2str(offsetSim(1, jth)/OSR),'us.']);
         messages = randi([1, 4], maxTimes, 1);
         settingsSim.messages = messages;
 
@@ -176,7 +176,7 @@ for ith = 1: 1: length(SNRStepAna)
     for jth = 1: 1: length(offsetAna)
         settingsAna.offset = offsetAna(1, jth);
 
-        disp(['---Runing model for ZigBee-to-BlE feedback, under SNR = ', num2str(settingsAna.SNR),'dB and offset = ', num2str(offsetAna(1, jth)/100),'us.']);
+        disp(['---Runing model for ZigBee-to-BlE feedback, under SNR = ', num2str(settingsAna.SNR),'dB and offset = ', num2str(offsetAna(1, jth)/OSR),'us.']);
         settingsAna.ACKSignalLenType = 'short';
         results = BusyChannelDetectProbCal(settingsAna);
         busyDetectProb_ShortSignal_Z2B(ith, jth) = results.succProb;
@@ -263,7 +263,7 @@ for ith = 1: 1: length(SNRStepSim)
     disp(['Runing simulation for SNR = ',num2str(SNR),'dB.']);
     for jth = 1: 1: length(offsetSim)
         settingsSim.offset = offsetSim(1, jth);
-        disp(['---Runing simulation for ZigBee-to-WiFi feedback, under SNR = ', num2str(SNR),'dB and offset = ', num2str(offsetSim(1, jth)/100),'us.']);
+        disp(['---Runing simulation for ZigBee-to-WiFi feedback, under SNR = ', num2str(SNR),'dB and offset = ', num2str(offsetSim(1, jth)/OSR),'us.']);
         messages = randi([1, 4], maxTimes, 1);
         settingsSim.messages = messages;
 
@@ -372,7 +372,7 @@ for ith = 1: 1: length(SNRStepAna)
     for jth = 1: 1: length(offsetAna)
         settingsAna.offset = offsetAna(1, jth);
 
-        disp(['---Runing model for ZigBee-to-WiFi feedback, under SNR = ', num2str(settingsAna.SNR),'dB and offset = ', num2str(offsetAna(1, jth)/100),'us.']);
+        disp(['---Runing model for ZigBee-to-WiFi feedback, under SNR = ', num2str(settingsAna.SNR),'dB and offset = ', num2str(offsetAna(1, jth)/OSR),'us.']);
 
         settingsAna.ACKSignalLenType = 'short';
         results = BusyChannelDetectProbCal(settingsAna);

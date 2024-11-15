@@ -15,11 +15,11 @@ global signalPower_dBm;
         txWaveform = PHYOQPSK_ACKfeedback(message, numORS, lenType, RXType);
         samples = Sampling(txWaveform, offsetValue, RXType); 
         if isequal(lenType, 'short')
-            numSampPerWave = size(samples, 2) / (numORS + 1);
-        else
-            numSampPerWave = size(samples, 2) / (2 * numORS);
-        end
-        samples = samples(1, numSampPerWave+1:1:2*numSampPerWave);
+                numSampPerWave = size(samples, 2) / (numORS + 1);
+            else
+                numSampPerWave = size(samples, 2) / (2 * numORS);
+            end
+            samples = samples(1, numSampPerWave+1:1:2*numSampPerWave);
         sampleReal = real(samples);
         sampleImag = imag(samples);
 
