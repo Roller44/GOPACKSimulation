@@ -761,7 +761,6 @@ ylabel('Successful ACK decoding probability $$P_{ACK}^{s}$$', 'Interpreter','Lat
 legend('location', 'best', 'Interpreter','Latex', 'FontSize', 8);
 
 % Plot packet delivery overhead
-dispSNR = -5:1:3;
 figure;
 jth = 1;
 scaleFactor = 1000;
@@ -797,7 +796,7 @@ for ith = 1: 1: length(numSym)
     jth = jth + 1;
 end
 hold off;
-axis([min(dispSNR), max(dispSNR), 0, 13]);
+axis([min(dispSNR), max(dispSNR), 0, 30]);
 xlabel('SNR (dB)', 'Interpreter', 'latex');
 ylabel('Mean complete transmission time $$E(\Omega)$$ ($$\mu s$$)', 'Interpreter','Latex')
 legend([p1, p2, p3, p4, p5, p6, p7, p8],...
