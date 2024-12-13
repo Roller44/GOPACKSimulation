@@ -1,6 +1,7 @@
-clear all
-clc
-
+global signalPower_dBm;
+signalPower_dBm = 10;
+global OSR;
+OSR = 100;
 % Frame duration
 PreambleDur = 128;
 SFDDur = 32;
@@ -25,6 +26,7 @@ ack_times = zeros(3, length(SNR));
 ack_timeout_times = zeros(3, length(SNR));
 tx_times = zeros(3, length(SNR));
 max_times = 10^4; %5*10^5;
+
 %% BlueBee
 % ith = 1;
 parfor ith = 1: length(SNR)
@@ -93,12 +95,17 @@ parfor ith = 1: length(SNR)
 end
 
 %% BlueBee + GOP-ACK
-settings.ACK_Threshold = 10;
-settings.ORS_Threshold = 0.6;
+settings.ACKThreshold = 10;
+settings.ORSThreshold = 0.6;
 settings.offset.isRandom = 1;
-settings.offset.offsetValue = 0;
+settings.ORSPhaseThreshold = 1;
+settings.ORSNumThreshold = 1;
+settings.powerThreshold = 0.013;
 max_retx_times = 6;
 ACKDur = 1*16;
+alpha = 4;
+settings.numORS = 3;
+settings.ACKSignalLenType = 'short';
 for ith = 1: length(SNR)
     disp(['Running BlueBee+GOP-ACK for the case where SNR=',num2str(SNR(1, ith)),'dB.']);
     for jth = 1: 1: max_times
@@ -131,12 +138,17 @@ for ith = 1: length(SNR)
                 end
             end
             settings.messages = ACK_sym;
-            txACKWaveform = PHYOQPSK_ACKfeedback(ACK_sym);
+            settings.offset = randi([-50, 50], 1, 1);
+            txACKWaveform = PHYOQPSK_ACKfeedback(settings.messages, settings.numORS*alpha, settings.ACKSignalLenType, 'WiFi');
             rxACKWaveform = awgn(txACKWaveform, SNR(1, ith), 'measured');
             settings.rxWaveform = rxACKWaveform;
             ack_times(3, ith) = ack_times(3, ith) + 1;
-            [~, ~, decode_accur] = AckDetection(settings);
-            if (ACK_sym==1||ACK_sym==3) && (decode_accur==1)
+
+%             [~, ~, decode_accur] = AckDetection(settings);
+            
+            accuracies = ACKDetectionWiFi(settings);
+            
+            if (ACK_sym==1||ACK_sym==3) && (accuracies.accurDecodedACK==1)
                 break;
             end
         end

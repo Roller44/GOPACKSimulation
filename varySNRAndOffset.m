@@ -1,5 +1,3 @@
-clear all;
-clc;
 %% Assume the ZigBee TX power is 10dBm.
 global signalPower_dBm;
 signalPower_dBm = 10;
