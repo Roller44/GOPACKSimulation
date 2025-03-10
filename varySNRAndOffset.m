@@ -794,7 +794,7 @@ for ith = 1: 1: length(numSym)
     jth = jth + 1;
 end
 hold off;
-axis([min(dispSNR), max(dispSNR), 0, 30]);
+axis([min(SNRStepSim), max(SNRStepSim), 0, 30]);
 xlabel('SNR (dB)', 'Interpreter', 'latex');
 ylabel('Mean complete transmission time $$E(\Omega)$$ ($$\mu s$$)', 'Interpreter','Latex')
 legend([p1, p2, p3, p4, p5, p6, p7, p8],...
